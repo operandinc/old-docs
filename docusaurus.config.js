@@ -52,6 +52,11 @@ const config = {
           {
             href: "https://github.com/operandinc/docs",
             label: "GitHub",
+            position: "left",
+          },
+          {
+            href: "https://operand.ai",
+            label: "Back to operand.ai",
             position: "right",
           },
         ],
