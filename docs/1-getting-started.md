@@ -40,7 +40,7 @@ Standard HTTP Errors are provided with descriptive messages and an additional er
 
 ### First Steps:
 
-Start by [creating an account](/auth) which will take you to our serverless dashboard. The serverless dashboard has an object browser and various settings for your account.
+Start by [creating an account](https://operand.ai/auth) which will take you to our serverless dashboard. The serverless dashboard has an object browser and various settings for your account.
 
 The object browser is a thin ui wrapper ontop of the API that lets you explore the basic structure of your objects and provides some functionality for object management (uploading,deleting,etc). Using the object browser is the easiest way to get started without having to write any code!
 
