@@ -1,0 +1,167 @@
+---
+title: "Triggers"
+slug: "triggers"
+id: "triggers"
+---
+
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
+
+A trigger lets your application subscribe to new content being indexed. In a similar fashion to [Google Alerts](https://www.google.com/alerts), when specific, interesting content is indexed, you can be notified about it.
+
+Take the example of an RSS feed, perhaps an engineering blog you're interested in. Specifically, you're interested in knowing when new content is published related to your interests, for example, computer networking or even something more specific, such as distributed consensus. In this case, you might setup a trigger which notifies you whenever content is published that is >=60% similar to the phrase "computer networking" or "distributed consensus".
+
+Note: This is a beta feature, and is API-only. It is not yet available on the web dashboard.
+
+## API Reference
+
+### Create a Trigger
+
+When creating a trigger, you'll need to specify the following:
+
+- The query to match against.
+- The matching threshold, i.e. how similar must the content be to the query in order for the trigger to fire.
+  - This is a number between 0.3 and 1. This depends on the content itself, but usually anywhere from 0.6 - 0.8 is a good starting point.
+- The kind of callback to use, as well as associated metadata. See the [callback reference](#callbacks) for more information.
+- The filter object, i.e. if you only want to match against a subset of your index.
+
+<Tabs groupId="programming-language">
+<TabItem value="typescript" label="TypeScript">
+
+```tsx
+const trigger = await operand.createTrigger({
+  query: "computer networking",
+  callbackKind: "webhook",
+  callbackMetadata: {
+    url: "https://example.com/webhook",
+  },
+  matchingThreshold: 0.6,
+});
+```
+
+</TabItem>
+<TabItem value="go" label="Go">
+
+```go
+trigger, err := client.CreateTrigger(context.Background(), operand.CreateTriggerArgs{
+    Query: "computer networking",
+    MatchingThreshold: operand.AsRef(float32(0.6)),
+    CallbackKind: operand.CallbackKindWebhook,
+    CallbackMetadata: map[string]string{
+        "url": "https://example.com/webhook",
+    },
+})
+```
+
+</TabItem>
+</Tabs>
+
+### List Triggers
+
+At any point, you can list all of your active triggers. This endpoint has a paginated response, thus you can specify both a `limit` and an `offset` parameter in your request. If not specified, `limit` will default to 100 (the maximum), and `offset` will default to 0.
+
+<Tabs groupId="programming-language">
+<TabItem value="typescript" label="TypeScript">
+
+```tsx
+const triggers = await operand.listTriggers({
+  limit: 100,
+  offset: 0,
+});
+```
+
+</TabItem>
+<TabItem value="go" label="Go">
+
+```go
+triggers, err := client.ListTriggers(context.Background(), operand.ListTriggersArgs{
+    Limit: 100
+    Offset: 0
+})
+```
+
+</TabItem>
+</Tabs>
+
+### Get a Trigger
+
+If you want to get a specific trigger, you can do so by querying by ID.
+
+<Tabs groupId="programming-language">
+<TabItem value="typescript" label="TypeScript">
+
+```tsx
+const trigger = await operand.getTrigger({
+  ID: "trigger-id",
+});
+```
+
+</TabItem>
+<TabItem value="go" label="Go">
+
+```go
+trigger, err := client.GetTrigger(context.Background(), operand.GetTriggerArgs{
+    ID: "trigger-id"
+})
+```
+
+</TabItem>
+</Tabs>
+
+### Delete a Trigger
+
+Deleting a trigger will disable it, i.e. no further notifications will be sent.
+
+<Tabs groupId="programming-language">
+<TabItem value="typescript" label="TypeScript">
+
+```tsx
+await operand.deleteTrigger({
+  id: "trigger-id",
+});
+```
+
+</TabItem>
+<TabItem value="go" label="Go">
+
+```go
+response, err := client.DeleteTrigger(context.Background(), operand.DeleteTriggerArgs{
+    ID: "trigger-id"
+})
+
+// Note: Response contains whether or not a trigger was deleted.
+```
+
+</TabItem>
+</Tabs>
+
+## Callbacks
+
+Callbacks are used to notify you when interesting content is indexed. You can choose between a number of different options for callbacks. At the moment, we currently only support webhooks. However, in the future, we're planning to add other options, such as email notifications.
+
+### Webhook
+
+Specifying the `webhook` callback kind will send an HTTP POST request to a specified URL when a trigger fires.
+
+Required metadata:
+
+```json
+{
+  "url": "https://example.com/webhook"
+}
+```
+
+The body of the request will be the content that matched the trigger:
+
+```json
+{
+  "triggerId": "trigger-id",
+  "matches": [
+    {
+      "content": "computer networks are unreliable! who knew?",
+      "objectId": "object-id",
+      "score": 0.82
+    }
+  ]
+}
+```
