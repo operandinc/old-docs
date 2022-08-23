@@ -34,6 +34,7 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
+          editUrl: "https://github.com/operandinc/docs/tree/trunk",
           routeBasePath: "/",
         },
 
