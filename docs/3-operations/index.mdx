@@ -1,0 +1,71 @@
+---
+title: "Operations"
+---
+
+Once you've created some [Objects](/objects), you can perform operations on them. For example, searching through their content, forming relationships between objects, or using the indexed content itself to synthesize new content.
+
+Currently, you can do the following operations on objects:
+
+- [Content-Based Search](/operations/search#content-based): Search for the most relevant pieces of content (i.e. sentences/paragraphs) within your object index for a particular query. Perfect for surfacing ideas and concepts.
+- [Object-Based Search](/operations/search#object-based): Search for the most relevant objects within your index for any particular query. Optimized for document-based search results pages, i.e. searching over documentation or webpages.
+- [Related-Objects Search](/operations/search#related-objects): Search for the most related objects to any other given object within your index. Perfect for making "related to" / "similar documents" sidebar components, or finding relationships between objects (i.e. for CRMs).
+- [Intelligent Question Answering](/operations/completions#question-answering): Answer natural language questions, using the indexed content of your objects as a ground-truth source of information. Great for synthesizing more complex answers, possibly from multiple different objects.
+- [TypeAhead Completions](/operations/completions#typeahead): Intelligent autocomplete / predictive text, using indexed content as a ground-truth. Ideal for note taking apps, or writing-heavy systems.
+
+## Filtering
+
+For many of the above-mentioned operations, you can choose to filter the results by passing in a `filter` parameter. Essentially, this allows you to only search over a subset of your overall index. In general, filters operate solely on the associated [Properties](/objects#properties) of your objects.
+
+Implicitly, all conditions specified in the top-level filter object are `AND`ed together. For example,
+
+```json
+{
+  "foo": "bar",
+  "number": 42
+}
+```
+
+will match objects with the property `foo` equal to `bar` and the property `number` equal to `42`.
+
+If an object has an array property, i.e. `"foo": ["bar", "baz"]`, filtering operations act as a contains operation. For example, an object with the array `foo` property containing `["bar", "baz"]` will match a filter `{"foo": "bar"}` as well as a filter `{"foo": "baz"}`.
+
+Filters are composable and rather advanced, i.e. you can use operators to combine multiple filters, and to execute range queries on numerical properties:
+
+```json
+{
+  "_and": [
+    {
+      "age": {
+        "_gte": 25
+      }
+    },
+    {
+      "_not": {
+        "_or": [
+          {
+            "age": 42
+          },
+          {
+            "age": 69
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+Equality operators on real-valued numerical properties, such as `42.69`, are supported (with a tolerance of `1e-6`).
+
+In general, the following operators are supported:
+
+- `_and`: Accepts an array of filters.
+- `_or`: Accepts an array of filters.
+- `_not`: Accepts a filter.
+
+Range queries on numerical properties can be done using a sub-object with one or more of the following keys:
+
+- `_gte`: Accepts a real-valued number.
+- `_gt`: Accepts a real-valued number.
+- `_lte`: Accepts a real-valued number.
+- `_lt`: Accepts a real-valued number.

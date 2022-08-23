@@ -34,6 +34,7 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
+          routeBasePath: "/",
         },
 
         theme: {
@@ -69,7 +70,7 @@ const config = {
             items: [
               {
                 label: "Get Started",
-                to: "/docs/getting-started",
+                to: "/start",
               },
             ],
           },

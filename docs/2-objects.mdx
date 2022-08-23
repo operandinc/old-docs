@@ -1,0 +1,472 @@
+---
+title: "Objects"
+---
+
+import TOCInline from "@theme/TOCInline";
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
+
+An object is the fundamental building block of the Operand API, and their design is heavily influenced by block-based filesystems such as S3. We model everything as an object, for example, a bit of text, a folder, or even something as advanced as an RSS feed.
+
+<TOCInline toc={toc} />
+
+## Schema
+
+An object has the following structure. In this example, a simple text object is shown.
+
+```json
+{
+  "id": "38fb18ef-f096-4921-88ed-932cb2c4223d",
+  "parentId": "b79ced9f-bf60-43a3-bdbd-4d322c57923d",
+  "createdAt": "2022-07-09T17:45:29.218904Z",
+  "updatedAt": "2022-07-09T17:45:30.701811Z",
+  "type": "text",
+  "metadata": {
+    "text": "Hello World!"
+  },
+  "properties": {
+    "foo": "bar",
+    "categories": ["foo", "bar"],
+    "number": 42
+  },
+  "indexingStatus": "ready",
+  "label": "hello.txt",
+  "lifespan": null
+}
+```
+
+Some notes about non-obvious fields:
+
+- `parentId` indicates whether or not this object is a child of another object. For example, a `collection` object acts a folder, and can have children.
+- `type` indicates the type of the object. For a full list of object types (and required `metadata`), see [Types](#types).
+- `properties` is a near-arbitrary JSON object which can store application-specific data related to an object. For a full reference of supported properties, see [Properties](#properties).
+- `indexingStatus` indicates the status of the object. Valid values are `indexing`, `error` and `ready`.
+- `label` is an optional text label for the object. It is not used for indexing, and purely for display/organizational purposes. By default, an object has no label.
+- `lifespan` is the lifespan of this object, measured in seconds. If set, the object will be automatically deleted after the lifespan has elapsed. The lifespan must be, at a minimum, 600 seconds (10 minutes). By default, an object has no lifespan and therefore lives forever. See [Lifespans](#lifespans) for more information.
+
+### Properties
+
+As mentioned above, an object can have near-arbitrary properties associated with it. There are two primary use-cases for this:
+
+- To store application-specific data related to an object. For example, if you create a per-user object, it may be useful to store the user's ID in the properties to better interpret search results, etc.
+- For filtering during operations. For example, if you store the user's age in the properties, you can limit search results to users above the age of 25. For more information, see [Filtering](/operations#filtering).
+
+An example property object:
+
+```json
+{
+  "foo": "bar",
+  "categories": ["foo", "bar"],
+  "number": 42,
+  "numbers": [1, 2, 3]
+}
+```
+
+The valid property values/types are:
+
+- String
+- Number
+- String Array
+- Number Array
+
+### Lifespans
+
+Each object has an optional lifespan, measured in seconds. This value must be at least 600 seconds, i.e. 10 minutes. This is primarily used for short-lived indexing operations, for example, if you want to index a PDF document for temporary use, but don't need to continue using it for longer than, for example, 24 hours.
+
+A few notes:
+
+- Using lifespans in certain applications can help make Operand cheaper, since our usage-based pricing model is based on the number of objects that are currently actively indexed.
+- Objects which are periodically indexed, such as an [RSS Feed](#rss) or a [GitHub Repository](#github-repository), have slightly different behavior for lifespans, in that the lifespan is applied to child objects, and not the object itself.
+- Operand is a large distributed system, and thus we can't guarantee that an object will be deleted instantly after its lifespan has elapsed. In general, you can expect deletions to occur within a minute or two of the lifespan expiring.
+
+## Operations
+
+Operand supports a number of CRUD-like operations on objects.
+
+### Create an Object
+
+When creating an object, you'll need to specify all the required fields, specifically, a [Type](#types) and associated `metadata`. The other fields are optional.
+
+<Tabs groupId="programming-language">
+<TabItem value="typescript" label="TypeScript">
+
+```tsx
+const object = await operand.createObject({
+  type: "text",
+  metadata: {
+    text: "Hello World!",
+  },
+  // Optional fields:
+  parentId: "<parentId>",
+  properties: {
+    foo: "bar",
+  },
+  label: "hello.txt",
+  lifespan: 600, // 10 minutes
+});
+```
+
+</TabItem>
+<TabItem value="go" label="Go">
+
+```go
+object, err := client.CreateObject(context.Background(), operand.CreateObjectArgs{
+    Type: operand.ObjectTypeText,
+    Metadata: operand.TextMetadata{
+        Text: "Hello World!",
+    },
+    // Optional fields:
+    ParentID: operand.AsRef("<parentId>"),
+    Properties: map[string]any{
+      "foo": "bar",
+    },
+    Label: operand.AsRef("hello.txt"),
+    Lifespan: operand.AsRef(600), // 10 minutes
+})
+```
+
+</TabItem>
+</Tabs>
+
+### List Objects
+
+Objects have parent-child relationships, which means that listing objects must be done in a hierarchical fashion. For example, you can list all objects with no parent (i.e. at the root), or all objects with a specific parent. Each of those types of queries can be paginated using cursor-based pagination.
+
+Each return object has the list of objects as an array, and a parameter indicating whether or not there are more objects to be listed.
+
+<Tabs groupId="programming-language">
+<TabItem value="typescript" label="TypeScript">
+
+```tsx
+const objectsReponse = await operand.listObjects({
+  // All of these fields are optional.
+  parentId: "<parentId>", // If not set, then will list all objects at the root.
+  limit: 100,
+  startingAfter: "ed3e62cc-b161-4fdd-a3f3-91547a376722",
+  endingBefore: "0b49544f-9291-4195-9e8a-5dc5cf4087aa",
+});
+```
+
+</TabItem>
+<TabItem value="go" label="Go">
+
+```go
+objectsResponse, err := client.ListObjects(context.Background(), operand.ListObjectsArgs{
+    // All of these fields are optional.
+    ParentID: operand.AsRef("<parentId>"),
+    Limit: operand.AsRef(100),
+    StartingAfter: operand.AsRef("ed3e62cc-b161-4fdd-a3f3-91547a376722"),
+    EndingBefore: operand.AsRef("0b49544f-9291-4195-9e8a-5dc5cf4087aa"),
+})
+```
+
+</TabItem>
+</Tabs>
+
+### Get an Object
+
+Returns an object by its ID.
+
+<Tabs groupId="programming-language">
+<TabItem value="typescript" label="TypeScript">
+
+```tsx
+const object = await operand.getObject({
+  id: "<objectId>",
+});
+```
+
+</TabItem>
+<TabItem value="go" label="Go">
+
+```go
+object, err := client.GetObject(context.Background(), "<objectId>", nil)
+```
+
+</TabItem>
+</Tabs>
+
+### Update an Object
+
+Updating an object is similar to creating an object, except that you can update any of the fields. If you don't specify a field, it will be left unchanged.
+
+<Tabs groupId="programming-language">
+<TabItem value="typescript" label="TypeScript">
+
+```tsx
+const object = await operand.updateObject({
+  id: "<objectId>",
+  // All below fields are optional.
+  type: "text",
+  metadata: {
+    text: "Hello World!",
+  },
+  properties: {
+    foo: "bar",
+  },
+  label: "hello.txt",
+  lifespan: 600, // 10 minutes
+});
+```
+
+</TabItem>
+<TabItem value="go" label="Go">
+
+```go
+object, err := client.UpdateObject(context.Background(), "<objectId>", operand.UpdateObjectArgs{
+  // All fields are optional.
+    Type: operand.ObjectTypeText,
+    Metadata: operand.TextMetadata{
+        Text: "Hello World!",
+    },
+    Properties: map[string]any{
+      "foo": "bar",
+    },
+    Label: operand.AsRef("hello.txt"),
+    Lifespan: operand.AsRef(600), // 10 minutes
+})
+```
+
+</TabItem>
+</Tabs>
+
+Some notes:
+
+- If the `type` or `metadata` fields of the object are changed, the object will be re-indexed.
+
+### Delete an Object
+
+You can delete an object by its ID. This operation will delete the object and all of its children (recursively).
+
+<Tabs groupId="programming-language">
+<TabItem value="typescript" label="TypeScript">
+
+```tsx
+const object = await operand.deleteObject({
+  id: "<objectId>",
+});
+```
+
+</TabItem>
+<TabItem value="go" label="Go">
+
+```go
+object, err := client.DeleteObject(context.Background(), "<objectId>", nil)
+```
+
+</TabItem>
+</Tabs>
+
+## Types
+
+Operand supports a large number of different object types, and each object type has a specific metadata schema that it requires.
+
+### Collection
+
+A collection object acts as a folder, and can contain other objects.
+
+Required metadata:
+
+```json
+{}
+```
+
+### Text
+
+A text object contains a blurb of text to index.
+
+Required metadata:
+
+```json
+{
+  "text": "Hello World!"
+}
+```
+
+### HTML
+
+HTML objects extract text content from raw HTML and index it. This object type also has an optional `title` property, which will be used to improve search results. If not specified, we'll take a best-effort approach to identify the title from the raw HTML itself.
+
+Required metadata:
+
+```json
+{
+  "html": "<html><body><h1>Hello World!</h1></body></html>",
+  "title": "My cool document." // Optional, will be extracted if not specified.
+}
+```
+
+Some notes:
+
+- If the HTML contains any images, they will be indexed in a similar manner to [Image](#image) objects. Alt text will also be indexed.
+
+### Markdown
+
+Markdown objects are used to index markdown documents. Similar to [HTML](#html), this object type also has an optional `title` property which is automatically extracted if possible (if not specified).
+
+Required metadata:
+
+```json
+{
+  "markdown": "# Hello World!\n\nThis is a markdown document."
+}
+```
+
+Some notes:
+
+- If the title isn't specified, we will attempt to extract it from the markdown document. We first check for any included metadata, i.e. a header tag named `title`, and if that fails, we look for a top-level heading (i.e. a leading `#`).
+
+### PDF
+
+PDF objects extract text content from raw PDF and index it.
+
+Required metadata:
+
+```json
+{
+  "pdfUrl": "https://example.com/cool.pdf"
+}
+```
+
+Some notes:
+
+- The `pdfUrl` must be a valid, publicly accessible URL. It will be downloaded when the object is indexed.
+- We support unlimited number of pages of PDF content, though the larger the PDF, the longer it will take to index.
+- There are a huge number of different PDF versions, and we don't yet have full support for them all. We expect the majority of PDFs to work, though if you have a PDF which errors for any reason, please [let us know](mailto:support@operand.ai).
+
+### Image
+
+Image objects extract two types of text content from raw images and indexes it:
+
+- A description of what the image contains, i.e. "a banana".
+- Any text in the image.
+
+Required metadata:
+
+```json
+{
+  "imageUrl": "https://example.com/cool.png"
+}
+```
+
+Some notes:
+
+- URLs must be publicly accessible, and we currently support PNGs and JPEGs.
+- If you're looking to index images in different file formats, please [let us know](mailto:support@operand.ai).
+
+### GitHub Repository
+
+A GitHub Repository periodically indexes [Markdown](#markdown) and [HTML](#html) content inside a repository.
+
+Required metadata:
+
+```json
+{
+  "accessToken": "<github access token>",
+  "repoOwner": "operandai",
+  "repoName": "docs",
+  "rootPath": "docs",
+  "rootUrl": "https://docs.operand.ai",
+  "ref": "refs/heads/main"
+}
+```
+
+Some notes:
+
+- The `accessToken` is used to authenticate with the GitHub API and fetch the contents of the specified repository. The end-application is responsible for generating this token via an OAuth flow with GitHub itself.
+- The `rootPath` is the root of the repository where we'll index content. For example, if the root path is `docs`, then we'll index content from the `docs` directory only. It is optional, and if not specified, we'll index content from the root of the repository.
+- The `rootUrl` parameter is used to generate per-document URLs for each indexed file within the repository. See [URL Assignment](#url-assignment) for more information. Optional.
+- `ref` is optional, and if not specified, we'll index the primary branch of the repository.
+
+#### URL Assignment
+
+When indexing content from GitHub Repositories, we assign URLs to each indexed file. By default, we'll use the file path attached to the `rootUrl`, if available. For applications requiring more specific URLs, you can create a file named `linkmap` in the `rootPath` with the following format:
+
+```text
+foo/$1.{md,mdx} https://example.com/foo/$1
+bar/$1/baz/$2.{md,mdx} https://example.com/$1/$2
+```
+
+If specified, this file will be read and used to generate URLs for each indexed file. In this specific case,
+
+- A file located at `foo/bar.md` (or `foo/bar.mdx`) will be mapped to `https://example.com/foo/bar`.
+- A file located at `foo/x/baz/y.md` (or `foo/x/baz/y.mdx`) will be mapped to `https://example.com/x/y`.
+
+### EPUB
+
+EPUB objects index the content of `epub` files. You may specify the `title` and `language` manually, though this will be automatically extracted if possible (if not specified).
+
+Required metadata:
+
+```json
+{
+  "epubUrl": "https://example.com/cool.epub",
+  "title": "My cool document.", // Optional, will be extracted if not specified.
+  "language": "en" // Optional, will be extracted if not specified.
+}
+```
+
+### Audio
+
+Audio objects index the content of audio files, for instance, the lyrics of a song or a recording of a podcast. We're actively working on adding new audio formats, please [let us know](mailto:support@operand.ai) if you're looking to index a specific format that we don't yet support.
+
+Required metadata:
+
+```json
+{
+  "audioUrl": "https://example.com/cool.mp3"
+}
+```
+
+### RSS
+
+RSS objects index the content of RSS feeds periodically. By default, feeds will be fetched every 2 hours, though depending on the `cache-control` header returned by the feed itself, we may fetch the feed more frequently in an attempt to a) always get the most recent content and b) not miss any content from highly active feeds.
+
+Required metadata:
+
+```json
+{
+  "rssUrl": "https://example.com/cool.rss"
+}
+```
+
+### Notion
+
+Notion objects can index [Notion](https://notion.so) workspaces periodically. The application is required to have the end-user go through an OAuth flow with Notion itself to obtain an access token.
+
+Required metadata:
+
+```json
+{
+  "accessToken": "<notion access token>"
+}
+```
+
+Some notes:
+
+- We'll attempt to index all pages that the end-user gave the integration access to.
+- Currently, we don't index content in databases or tables.
+
+### Email
+
+Email objects are used to index the content of SMTP emails. You can pass the raw email itself as a string, and we'll do the required parsing / extractions automatically.
+
+Required metadata:
+
+```json
+{
+  "email": "<raw email>"
+}
+```
+
+### Mailbox
+
+Allows you to index the content of emails in a mailbox (i.e. `mbox` files). This is useful when allowing users to do a bulk one-time index of all emails in a mailbox, i.e. exported from a Gmail account or another email client.
+
+Required metadata:
+
+```json
+{
+  "mboxUrl": "https://example.com/cool.mbox"
+}
+```
