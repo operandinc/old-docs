@@ -1,0 +1,313 @@
+---
+title: "Search"
+---
+
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
+
+Search is the fundamental operation of the API, and is purely extractive, i.e. involves finding the most relevant content for a given query. We support a number of different search "variants", i.e. differently structured search engines optimized for specific use-cases.
+
+It's important to note that Operand is a _semantic search engine_, meaning it focuses on finding the most relevant content and ideas for a given query, and not on finding text snippets with identically matching content. For instance, searching for a particular email address or unique identifer will not return correct results, and is a use-case we do not support at the moment. Additionally, it is incorrect to assume that identical content will always be returned for a given query, there is often more relevant content available and we prefer to return that. For a more traditional (full-text) search experience, we recommend looking elsewhere:
+
+- [ElasticSearch](https://www.elastic.co/)
+- [Meilisearch](https://www.meilisearch.com/)
+- [Algolia](https://www.algolia.com/)
+
+## Variants
+
+### Content Based
+
+Content-based search involves searching over the content and ideas of your objects, i.e. sentences and paragraphs. For example, when searching over a collection of essays, a content-based search might return several snippets of text that talk about ideas related to the query.
+
+Parameters:
+
+- The `query` is the search query. It must not be empty.
+- `parentIds` is an array of object IDs to search within. Searches will be scoped to these objects (and their children) only. Optional, if not specified, will search over all objects in your index.
+- `max` is the maximum number of content-based search results to return. Note: In some cases, we may return fewer results than this. Defaults to 5.
+- `filter` is the optional filter object. See [Filtering](/operations#filtering) for more information.
+
+<Tabs groupId="programming-language">
+<TabItem value="typescript" label="TypeScript">
+
+```tsx
+const results = await operand.searchContents({
+  query: "starting a startup",
+  parentIds: ["81c2f6d0-9e1d-4418-8810-92a7ea0333d9"],
+  max: 3,
+  filter: {},
+});
+```
+
+</TabItem>
+<TabItem value="go" label="Go">
+
+```go
+results, err := client.SearchContents(context.Background(), operand.SearchContentsArgs{
+    Query: "starting a startup",
+    ParentIds: []string{"81c2f6d0-9e1d-4418-8810-92a7ea0333d9"},
+    Max: 3
+    Filter: map[string]any{},
+})
+```
+
+</TabItem>
+</Tabs>
+
+For example, when searching over [Paul Graham's Essays](https://www.paulgraham.com/essays.html), a content-based search for "starting a startup is hard" might return the following:
+
+```json
+{
+  "id": "4985975c-f39b-47aa-8231-64d0c0a79b69",
+  "latencyMs": 255,
+  "contents": [
+    {
+      "content": "It is. When I talk to the founders of the companies we've funded, they all say the same thing: I knew it would be hard, but I didn't realize it would be this hard. So why do it? It would be worth enduring a lot of pain and stress to do something grand or heroic, but just to make money? Is making money really that important?",
+      "objectId": "005e0236-1e86-4bf7-b48b-2d882ea7bf55",
+      "score": 0.70503676,
+      "type": "content"
+    },
+    {
+      "content": "[8] But negative lessons are just as valuable as positive  ones. Perhaps even more valuable: it's hard to repeat a brilliant performance, but it's straightforward to avoid errors. [9] The other reason it's hard to start a company before 23 is that      people won't take you seriously. VCs won't trust you, and will try to reduce you to a mascot as a condition of funding.",
+      "objectId": "4a0d0043-0c1e-4112-801f-fcbcaaa56ea8",
+      "score": 0.6827942,
+      "type": "content"
+    },
+    {
+      "content": "And that's kind of exciting, when you think about it, because all three are doable. Hard, but doable. And since a startup that succeeds ordinarily makes its founders rich, that implies getting rich is doable too. Hard, but doable. If there is one message I'd like to get across about startups, that's it. There is no magically difficult step that requires brilliance to solve.",
+      "objectId": "4a0d0043-0c1e-4112-801f-fcbcaaa56ea8",
+      "score": 0.66963196,
+      "type": "content"
+    }
+  ],
+  "objects": {
+    "005e0236-1e86-4bf7-b48b-2d882ea7bf55": {
+      "createdAt": "2022-08-18T05:00:25.140389-04:00",
+      "id": "005e0236-1e86-4bf7-b48b-2d882ea7bf55",
+      "indexingStatus": "ready",
+      "label": null,
+      "lifespan": null,
+      "metadata": {
+        "url": "http://www.paulgraham.com/startuplessons.html",
+        "html": "<omitted>",
+        "title": "The Hardest Lessons for Startups to Learn"
+      },
+      "parentId": "81c2f6d0-9e1d-4418-8810-92a7ea0333d9",
+      "properties": {},
+      "type": "html",
+      "updatedAt": "2022-08-18T05:00:47.880149-04:00"
+    },
+    "4a0d0043-0c1e-4112-801f-fcbcaaa56ea8": {
+      "createdAt": "2022-08-18T05:01:04.083298-04:00",
+      "id": "4a0d0043-0c1e-4112-801f-fcbcaaa56ea8",
+      "indexingStatus": "ready",
+      "label": null,
+      "lifespan": null,
+      "metadata": {
+        "url": "http://www.paulgraham.com/start.html",
+        "html": "<omitted>",
+        "title": "How to Start a Startup"
+      },
+      "parentId": "81c2f6d0-9e1d-4418-8810-92a7ea0333d9",
+      "properties": {},
+      "type": "html",
+      "updatedAt": "2022-08-18T05:01:23.508691-04:00"
+    }
+  }
+}
+```
+
+Some notes:
+
+- We return an array of content snippets, each with the content itself, the relevant object ID, the type of content, and the relevancy score (a number between 0 and 1).
+- We also return a map of object IDs to objects, i.e. including any objects from which content results were derived.
+
+### Object Based
+
+Object-based search is perhaps a more traditional search experience, since it involves searching over and finding the most relevant objects (documents) for a given search query. Often, end-users are more accustomed to seeing document-based search results (complete with titles and snippets) than content-based search results, which from a UI/UX perspective, can be tricky to display properly.
+
+Parameters:
+
+- `query` is the search query. It must not be empty.
+- `parentIds` is an array of parent object IDs. Similar to content-based search, we scope search results to these objects and their children. If not specified, we search over your entire index.
+- `max` is the maximum number of objects to return. If not specified, we default to 5. Note: We may return fewer than this number of objects in some cases.
+- `filter` is the optional filter object. See [Filtering](/operations#filtering) for more information.
+
+<Tabs groupId="programming-language">
+<TabItem value="typescript" label="TypeScript">
+
+```tsx
+const results = await operand.searchObjects({
+  query: "starting a startup",
+  parentIds: ["81c2f6d0-9e1d-4418-8810-92a7ea0333d9"],
+  max: 3,
+  filter: {},
+});
+```
+
+</TabItem>
+<TabItem value="go" label="Go">
+
+```go
+results, err := client.SearchObjects(context.Background(), operand.SearchObjects{
+    Query: "starting a startup",
+    ParentIds: []string{"81c2f6d0-9e1d-4418-8810-92a7ea0333d9"},
+    Max: 3
+    Filter: map[string]any{},
+})
+```
+
+</TabItem>
+</Tabs>
+
+For example, when searching over [Paul Graham's Essays](https://www.paulgraham.com/essays.html), an object-based search for "starting a startup is hard" might return the following:
+
+```json
+{
+  "id": "53bc7c0e-c8e1-469d-aa44-5aa01fc6e30e",
+  "latencyMs": 236,
+  "results": [
+    {
+      "object": {
+        "createdAt": "2022-08-18T05:00:25.140389-04:00",
+        "id": "005e0236-1e86-4bf7-b48b-2d882ea7bf55",
+        "indexingStatus": "ready",
+        "label": null,
+        "lifespan": null,
+        "metadata": {
+          "url": "http://www.paulgraham.com/startuplessons.html",
+          "html": "<omitted>",
+          "title": "The Hardest Lessons for Startups to Learn"
+        },
+        "parentId": "81c2f6d0-9e1d-4418-8810-92a7ea0333d9",
+        "properties": {},
+        "type": "html",
+        "updatedAt": "2022-08-18T05:00:47.880149-04:00"
+      },
+      "snippet": "It is. When I talk to the founders of the companies we've funded, they all say the same thing: I knew it would be hard, but I didn't realize it would be this hard. So why do it? It would be worth enduring a lot of pain and stress to do something grand or heroic, but just to make money? Is making money really that important?"
+    },
+    {
+      "object": {
+        "createdAt": "2022-08-18T05:00:09.100065-04:00",
+        "id": "eab2158f-a2e3-4a7b-9e90-a7557c221dc8",
+        "indexingStatus": "ready",
+        "label": null,
+        "lifespan": null,
+        "metadata": {
+          "url": "http://www.paulgraham.com/mit.html",
+          "html": "<omitted>",
+          "title": "A Student's Guide to Startups"
+        },
+        "parentId": "81c2f6d0-9e1d-4418-8810-92a7ea0333d9",
+        "properties": {},
+        "type": "html",
+        "updatedAt": "2022-08-18T05:00:28.078177-04:00"
+      },
+      "snippet": "One after another said that if they'd known how hard it would be, they would have been too intimidated to start. Ignorance can be useful when it's a counterweight to other forms of stupidity. It's useful in starting startups because you're capable of more than you realize. Starting startups is harder than you expect, but you're also capable of more than you expect, so they balance out."
+    },
+    {
+      "object": {
+        "createdAt": "2022-08-18T04:58:13.009135-04:00",
+        "id": "6fdbe559-ab05-4b42-acf8-ca7fdaf6c08b",
+        "indexingStatus": "ready",
+        "label": null,
+        "lifespan": null,
+        "metadata": {
+          "url": "http://www.paulgraham.com/before.html",
+          "html": "<omitted>",
+          "title": "Before the Startup"
+        },
+        "parentId": "81c2f6d0-9e1d-4418-8810-92a7ea0333d9",
+        "properties": {},
+        "type": "html",
+        "updatedAt": "2022-08-18T04:58:27.711644-04:00"
+      },
+      "snippet": "Try Should you do it at any age? I realize I've made startups sound pretty hard. If I haven't, let me try again: starting a startup is really hard. What if it's too hard? How can you tell if you're up to this challenge? The answer is the fifth counterintuitive point: you can't tell. Your life so far may have given you some idea what your prospects might be if you tried to become a mathematician, or a professional football player."
+    }
+  ]
+}
+```
+
+Some notes:
+
+- As you can likely tell, search results here follow a much simpler format than content-based search results, or at least more familiar. A set of objects are returned, in order, along with a snippet of text which pulls relevant content from the particular object into the search result.
+
+### Related Objects
+
+The related object operation is used to identify relationships between objects themselves, i.e. to find the most similar object(s) to any given object. This is uniquely powerful when objects represent certain types of entities, such as people, blog posts, or even places. We expect this search variant to be heavily used within blogs or knowledge bases (finding related content to what the user is currently viewing) or within CRMs (finding related people to a given person).
+
+Parameters:
+
+- `objectId` is the ID of the object to find related objects for.
+- `parentIds` is a list of object IDs to scope the search within, i.e. these objects (and their children) are the only objects which will be considered.
+- `max` is the maximum number of related objects to return. In some cases, we may return fewer.
+- `filter` is the optional filter object. See [Filtering](/operations#filtering) for more information.
+
+<Tabs groupId="programming-language">
+<TabItem value="typescript" label="TypeScript">
+
+```tsx
+const results = await operand.searchRelated({
+  objectId: "005e0236-1e86-4bf7-b48b-2d882ea7bf55",
+  parentIds: ["81c2f6d0-9e1d-4418-8810-92a7ea0333d9"],
+  max: 3,
+  filter: {},
+});
+```
+
+</TabItem>
+<TabItem value="go" label="Go">
+
+```go
+results, err := client.SearchRelated(context.Background(), operand.SearchRelatedArgs{
+    ObjectID: "005e0236-1e86-4bf7-b48b-2d882ea7bf55",
+    ParentIds: []string{"81c2f6d0-9e1d-4418-8810-92a7ea0333d9"},
+    Max: 3
+    Filter: map[string]any{},
+})
+```
+
+</TabItem>
+</Tabs>
+
+For example, when searching over [Paul Graham's Essays](https://www.paulgraham.com/essays.html), we can find the most similar documents to his essay "The Hardest Lessons for Startups to Learn":
+
+```json
+{
+  "id": "0fd70b6f-0dd6-4168-87a1-26f4e10eecce",
+  "latencyMs": 91,
+  "objects": [
+    {
+      "createdAt": "2022-08-18T04:58:57.244955-04:00",
+      "id": "a0750943-56fc-4cb2-9b2e-026bd4f0a933",
+      "indexingStatus": "ready",
+      "label": null,
+      "lifespan": null,
+      "metadata": {
+        "url": "http://www.paulgraham.com/really.html",
+        "html": "<omitted>",
+        "title": "What Startups Are Really Like"
+      },
+      "parentId": "81c2f6d0-9e1d-4418-8810-92a7ea0333d9",
+      "properties": {},
+      "type": "html",
+      "updatedAt": "2022-08-18T04:59:07.864983-04:00"
+    },
+    {
+      "createdAt": "2022-08-18T05:01:04.083298-04:00",
+      "id": "4a0d0043-0c1e-4112-801f-fcbcaaa56ea8",
+      "indexingStatus": "ready",
+      "label": null,
+      "lifespan": null,
+      "metadata": {
+        "url": "http://www.paulgraham.com/start.html",
+        "html": "<omitted>",
+        "title": "How to Start a Startup"
+      },
+      "parentId": "81c2f6d0-9e1d-4418-8810-92a7ea0333d9",
+      "properties": {},
+      "type": "html",
+      "updatedAt": "2022-08-18T05:01:23.508691-04:00"
+    }
+  ]
+}
+```

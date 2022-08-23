@@ -1,0 +1,140 @@
+---
+title: "Completions"
+---
+
+Completions are synthesis operations, i.e. operations which involve synthesizing information from indexed operations. As with [Search](/operations/search), we support a number of different variants optimized for specific use cases.
+
+Note: Completions are currently free during the beta period, though will eventually be part of our usage-based billing pricing model. We will update this page when we're ready to release more information.
+
+## Variants
+
+### Question Answering
+
+Often, we want to generate and synthesize an answer to a natural language question. Content-based search is great for question answering, but often won't yield a direct answer to a question, or leave the end-user scanning through chunks of content for the answer they want. Rather, using this completion variant, we can synthesize a direct answer to the question automatically (possibly from multiple objects).
+
+Parameters:
+
+- `question` is the question to be answered.
+- `parentIds` is an array of object IDs (and their children) to reference as the context for the question. The content of these objects will be interpreted as ground-truth, i.e. the content of the objects will be used to answer the question.
+- `filter` is the optional filter object. See [Filtering](/operations#filtering) for more information.
+
+<Tabs groupId="programming-language">
+<TabItem value="typescript" label="TypeScript">
+
+```tsx
+const results = await operand.completionAnswer({
+  question: "how do I get startup ideas?",
+  parentIds: ["81c2f6d0-9e1d-4418-8810-92a7ea0333d9"],
+  filter: {},
+});
+```
+
+</TabItem>
+<TabItem value="go" label="Go">
+
+```go
+results, err := client.CompletionAnswer(context.Background(), operand.CompletionAnswerArgs{
+    Question: "how do I get startup ideas?",
+    ParentIds: []string{"81c2f6d0-9e1d-4418-8810-92a7ea0333d9"},
+    Filter: map[string]any{},
+})
+```
+
+</TabItem>
+</Tabs>
+
+For example, when doing Q&A over [Paul Graham's Essays](https://www.paulgraham.com/essays.html), if we ask "how do I get startup ideas?", we can get a direct answer to the question (with content pulled from the essays):
+
+```json
+{
+  "id": "7cf53d41-5308-45dd-ad2c-81b93d1af6e2",
+  "latencyMs": 2887,
+  "answer": "The best way to get startup ideas is to become the sort of person who has them and then build whatever interests you. However, if you need an idea now, you can try asking yourself whether there's something unusual about you that makes your needs different from most other people's.",
+  "sources": [
+    {
+      "createdAt": "2022-08-18T04:58:24.415307-04:00",
+      "id": "4c12141d-c5d0-449a-9c2d-7611a77aeb6a",
+      "indexingStatus": "ready",
+      "label": null,
+      "lifespan": null,
+      "metadata": {
+        "url": "http://www.paulgraham.com/startupideas.html",
+        "html": "<omitted>",
+        "title": "How to Get Startup Ideas"
+      },
+      "parentId": "81c2f6d0-9e1d-4418-8810-92a7ea0333d9",
+      "properties": {},
+      "type": "html",
+      "updatedAt": "2022-08-18T04:58:41.467689-04:00"
+    }
+  ]
+}
+```
+
+### TypeAhead
+
+TypeAhead is a powerful, discovery-focused variant which allows end-applications to auto-complete users input based on a set of indexed documents. For example, you could index a large corpus of the users' previous emails, and use this completion variant to assist the user in writing future emails (in a similar style / with similar content).
+
+Parameters:
+
+- `text` is the text to be completed, i.e. the current input buffer of the user. This should be 280 characters long at most, i.e. the last sentence or two of the users' current input.
+- `count` is the number of completions to return. Max value is 5, useful when giving the user multiple options to choose from.
+- `parentIds` is an array of object IDs (and their children) to reference as context for the automatic completion.
+- `filter` is the optional filter object. See [Filtering](/operations#filtering) for more information.
+
+<Tabs groupId="programming-language">
+<TabItem value="typescript" label="TypeScript">
+
+```tsx
+const results = await operand.completionTypeAhead({
+  text: "make something people",
+  count: 3,
+  parentIds: ["81c2f6d0-9e1d-4418-8810-92a7ea0333d9"],
+  filter: {},
+});
+```
+
+</TabItem>
+<TabItem value="go" label="Go">
+
+```go
+results, err := client.CompletionTypeAhead(context.Background(), operand.CompletionTypeAheadArgs{
+    Text: "make something people",
+    Count: 3,
+    ParentIds: []string{"81c2f6d0-9e1d-4418-8810-92a7ea0333d9"},
+    Filter: map[string]any{},
+})
+```
+
+</TabItem>
+</Tabs>
+
+For example, when using [Paul Graham's Essays](https://www.paulgraham.com/essays.html) as a source of reference information, we can autocomplete "make something people" to get possible completions that the user may type next.
+
+```json
+{
+  "id": "2d827612-e0d5-4da1-b2a4-f267b8318732",
+  "latencyMs": 1705,
+  "completions": [" want"],
+  "sources": [
+    {
+      "createdAt": "2022-08-18T05:01:23.891523-04:00",
+      "id": "d8e42cf4-a450-48ab-b10e-b63ed0324fb5",
+      "indexingStatus": "ready",
+      "label": null,
+      "lifespan": null,
+      "metadata": {
+        "url": "http://www.paulgraham.com/wealth.html",
+        "html": "<omitted>",
+        "title": "How to Make Wealth"
+      },
+      "parentId": "81c2f6d0-9e1d-4418-8810-92a7ea0333d9",
+      "properties": {},
+      "type": "html",
+      "updatedAt": "2022-08-18T05:01:50.988425-04:00"
+    }
+  ]
+}
+```
+
+The UI would likely show the completion inline, in a similar fashion to [GitHub Copilot](https://github.com/features/copilot). In this case, "make something people" would be autocompleted to "make something people want".

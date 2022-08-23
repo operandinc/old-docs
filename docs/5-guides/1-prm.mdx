@@ -1,0 +1,156 @@
+---
+title: "Personal Relationship Manager (PRM)"
+description: "Build a next-generation personal relationship manager (PRM) with Operand"
+---
+
+A quick guide on how to build a next-generation personal relationship manager (PRM) with Operand.
+
+We all have too many relationships to keep track of, and it's super valuable to keep these up-to-date. But how do we do that? How do we remember everyone's birthday? How do we know who to connect with when we're working on a new project? As our networks expand, so does the complexity of keeping track of all of these relationships.
+
+In this guide, we're going to walk through some of the underlying primitives, exposed by [Operand](https://operand.ai), which would be ideal when building a new PRM system. We'll also walk through some of the key concepts and operations you can do with the API, and then we'll show you how to build a real-world example of a PRM system.
+
+### Indexing People
+
+Alright, we'll admit, that sounds a bit weird, but it's actually pretty straightforward. If we model a person as a markdown object, for example, with their name, a short bio, etc., we can index them all with relative ease.
+
+Let's get started with a simple example, we're going to index 5 people based on the first paragraph of their Wikipedia page.
+
+Here's the script to do this:
+
+```javascript
+const { OperandV3 } = require("@operandinc/sdk");
+
+(async () => {
+  // Initialize a client object.
+  const operand = new OperandV3("<your api key>", "https://prod.operand.ai");
+
+  // Create a collection.
+  const collection = await operand.createObject({
+    type: "collection",
+    metadata: {},
+    label: "My PRM",
+  });
+
+  console.log(`created collection ${collection.id}`);
+
+  const people = [
+    {
+      name: "Paul Graham",
+      bio: "Paul Graham is an English-born American computer scientist, essayist, entrepreneur, venture capitalist, and author. He is best known for his work on the programming language Lisp, his former startup Viaweb (later renamed Yahoo! Store), cofounding the influential startup accelerator and seed capital firm Y Combinator, his blog, and Hacker News. He is the author of several computer programming books, including: On Lisp,[3] ANSI Common Lisp,[4] and Hackers & Painters.[5] Technology journalist Steven Levy has described Graham as a 'hacker philosopher'.[6]",
+    },
+    {
+      name: "Patrick Collison",
+      bio: "Patrick Collison (born 9 September 1988) is an Irish billionaire entrepreneur. He is the co-founder and CEO of Stripe, which he started with his younger brother, John, in 2010. He won the 41st Young Scientist and Technology Exhibition in 2005 at the age of sixteen. In 2020, he founded Fast Grants to accelerate COVID-19-related science with Tyler Cowen.",
+    },
+    {
+      name: "John Collison",
+      bio: "John Collison (born August 6, 1990) is an Irish billionaire entrepreneur and the co-founder and President of Stripe which he co-founded in 2010 with his brother Patrick. Collison was the youngest self made billionaire in 2016. As of 2022, according to Bloomberg Billionaires Index, his net worth was estimated at US$11.4 billion, ranking him the 187th richest person in the world and one of the wealthiest people from Ireland.[1]",
+    },
+    {
+      name: "Laura Deming",
+      bio: "Laura Deming (born 1994) is a venture capitalist. Her work focuses on life extension, and using biological research to reduce or reverse the effects of aging.",
+    },
+  ];
+
+  // Create all the people objects inside of the collection.
+  for (const person of people) {
+    await operand.createObject({
+      type: "markdown",
+      metadata: {
+        markdown: `# ${person.name}\n\n${person.bio}`,
+      },
+      label: person.name,
+      parentId: collection.id,
+    });
+    console.log(`created markdown ${person.name}`);
+  }
+})();
+```
+
+When we run this, we see the following output:
+
+```text
+created collection 05052dc8-3491-4c18-a9c4-471279fe02a9
+created markdown Paul Graham
+created markdown Patrick Collison
+created markdown John Collison
+created markdown Laura Deming
+```
+
+Looking in the [dashboard](https://operand.ai/dashboard), we can see that our collection & objects have been successfully indexed:
+
+![Dashboard PRM](/img/posts/prm/indexed.png)
+
+### Finding Related People
+
+Now that we've indexed all the people in our PRM, we can start to execute operations on the index. One of the primary operations we can do is finding related people using the [related objects](/operations/search#related-objects) endpoint. For example, let's find all the people related to Patrick Collison.
+
+We can copy the ID of Patrick Collison from the dashboard or get it from the object response we got above.
+
+Then, we can execute the query:
+
+```javascript
+const related = await operand.searchRelated({
+  objectId: "cd5c3abc-4fdb-4ee9-9fe2-cfe06f4c4f39",
+  parentIds: ["05052dc8-3491-4c18-a9c4-471279fe02a9"],
+  max: 2,
+});
+for (let i = 0; i < related.objects.length; i++) {
+  console.log(`${i + 1}. ${JSON.stringify(related.objects[i])}`);
+}
+```
+
+Running this code yields what we expect, John Collison is the most similar to Patrick, followed by Paul Graham.
+
+```text
+1. {"createdAt":"2022-08-23T11:22:35.825369Z","id":"40b89a00-dde2-4735-9c43-875c14c3cf4a","indexingStatus":"ready","label":null,"lifespan":null,"metadata":{"url":null,"html":"<h1>John Collison</h1>\n<p>John Collison (born August 6, 1990) is an Irish billionaire entrepreneur and the co-founder and President of Stripe which he co-founded in 2010 with his brother Patrick. Collison was the youngest self made billionaire in 2016. As of 2022, according to Bloomberg Billionaires Index, his net worth was estimated at US$11.4 billion, ranking him the 187th richest person in the world and one of the wealthiest people from Ireland.[1]</p>\n","title":"John Collison"},"parentId":"14bb1eba-a389-493f-b6e1-82706b7612a3","properties":{},"type":"html","updatedAt":"2022-08-23T11:22:36.716137Z"}
+2. {"createdAt":"2022-08-23T11:22:36.422801Z","id":"13c4383f-eb1a-46eb-b441-2e3240f7b33f","indexingStatus":"ready","label":null,"lifespan":null,"metadata":{"url":null,"html":"<h1>Paul Graham</h1>\n<p>Paul Graham is an English-born American computer scientist, essayist, entrepreneur, venture capitalist, and author. He is best known for his work on the programming language Lisp, his former startup Viaweb (later renamed Yahoo! Store), cofounding the influential startup accelerator and seed capital firm Y Combinator, his blog, and Hacker News. He is the author of several computer programming books, including: On Lisp,[3] ANSI Common Lisp,[4] and Hackers &amp; Painters.[5] Technology journalist Steven Levy has described Graham as a 'hacker philosopher'.[6]</p>\n","title":"Paul Graham"},"parentId":"23656c95-b1f5-4371-af67-3ee24a199934","properties":{},"type":"html","updatedAt":"2022-08-23T11:22:37.344714Z"}
+```
+
+Some ideas for using this in the context of a PRM:
+
+- When a user is viewing a certain user profile, a sidebar component can display a list of between 3-5 closely related people.
+- When showing search results containing a list of people, we can also compute all the related people and group/cluster them together.
+
+### Searching for People
+
+In addition to finding related people, we can also search for people using semantic search, specifically, using the [object-based search endpoint](/operations/search#object-based). This will return the top-K objects for any given query, along with a small snippet of relevant text.
+
+Now, we can try a bunch of search queries:
+
+```javascript
+const search = async (query) => {
+  const results = await operand.searchObjects({
+    parentIds: ["05052dc8-3491-4c18-a9c4-471279fe02a9"],
+    max: 3,
+    query,
+  });
+  console.log(`Got ${results.results.length} results for query '${query}':`);
+  for (let i = 0; i < results.results.length; i++) {
+    console.log(`${i + 1}: ${results.results[i].object.label}`);
+  }
+};
+
+search("longevity");
+search("stripe");
+search("Robert Morris");
+```
+
+Which yields the following:
+
+```text
+Got 3 results for query 'longevity':
+1: Laura Deming
+2: Paul Graham
+3: John Collison
+Got 3 results for query 'stripe':
+1: Patrick Collison
+2: John Collison
+3: Paul Graham
+Got 3 results for query 'Robert Morris':
+1: Paul Graham
+2: John Collison
+3: Patrick Collison
+```
+
+Note: The keyword "Robert Morris" isn't even mentioned in Paul Graham's bio, but is semantically related to him, so is returned first.
