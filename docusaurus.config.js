@@ -73,12 +73,6 @@ const config = {
             label: "API Reference",
             position: "left",
           },
-
-          {
-            href: "https://github.com/operandinc/docs",
-            label: "GitHub",
-            position: "left",
-          },
           {
             href: "https://operand.ai",
             label: "Back to operand.ai",
@@ -128,6 +122,14 @@ const config = {
         darkTheme: darkCodeTheme,
       },
     }),
+  plugins: [
+    [
+      "docusaurus-plugin-segment",
+      {
+        apiKey: process.env.SEGMENT_API_KEY,
+      },
+    ],
+  ],
 };
 
 module.exports = config;
