@@ -1,0 +1,1085 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Operand",
+    "version": "3.0",
+    "license": {
+      "name": "MIT"
+    },
+    "contact": {
+      "name": "Operand",
+      "email": "support@operand.ai"
+    },
+    "termsOfService": "https://operand.ai/terms",
+    "description": ""
+  },
+  "servers": [
+    {
+      "url": "https://prod.operand.ai",
+      "description": "Production"
+    }
+  ],
+  "paths": {
+    "/v3/objects": {
+      "post": {
+        "summary": "Create Object",
+        "tags": ["Objects"],
+        "operationId": "post-objects",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "type": {
+                    "$ref": "#/components/schemas/ObjectTypes"
+                  },
+                  "metadata": {
+                    "$ref": "#/components/schemas/Metadata"
+                  },
+                  "parentId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "properties": {
+                    "$ref": "#/components/schemas/Properties"
+                  },
+                  "label": {
+                    "$ref": "#/components/schemas/Label"
+                  },
+                  "lifespan": {
+                    "$ref": "#/components/schemas/Lifespan"
+                  }
+                },
+                "required": ["type", "metadata"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create a single object"
+      },
+      "get": {
+        "summary": "List Objects",
+        "tags": ["Objects"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "objects": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Object"
+                      }
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-objects",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "query",
+            "name": "parentId"
+          },
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "limit"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "query",
+            "name": "startingAfter"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "in": "query",
+            "name": "endingBefore"
+          }
+        ],
+        "description": "Cursor-based pagination of objects"
+      },
+      "parameters": []
+    },
+    "/v3/objects/{id}": {
+      "parameters": [
+        {
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": "id",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "delete": {
+        "summary": "Delete Object",
+        "tags": ["Objects"],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Deleted"
+          }
+        },
+        "operationId": "delete-objects-id",
+        "description": "Delete a single object by id"
+      },
+      "put": {
+        "summary": "Update Object",
+        "tags": ["Objects"],
+        "operationId": "put-objects-id",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "$ref": "#/components/schemas/ObjectTypes"
+                  },
+                  "metadata": {
+                    "$ref": "#/components/schemas/Metadata"
+                  },
+                  "properties": {
+                    "$ref": "#/components/schemas/Properties"
+                  },
+                  "label": {
+                    "$ref": "#/components/schemas/Label"
+                  },
+                  "lifespan": {
+                    "$ref": "#/components/schemas/Lifespan"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Update a single object by id"
+      },
+      "get": {
+        "summary": "Get Object",
+        "tags": ["Objects"],
+        "operationId": "get-objects-id",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Get a single object by id"
+      }
+    },
+    "/v3/search/contents": {
+      "post": {
+        "summary": "Content Based",
+        "tags": ["Operations", "Search"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "latencyMs": {
+                      "type": "integer"
+                    },
+                    "contents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "content": {
+                            "type": "string"
+                          },
+                          "objectId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "score": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1,
+                            "format": "float"
+                          },
+                          "type": {
+                            "$ref": "#/components/schemas/ContentTypes"
+                          }
+                        },
+                        "required": ["content", "objectId", "score", "type"]
+                      }
+                    },
+                    "objects": {
+                      "type": "object"
+                    }
+                  },
+                  "required": ["id", "latencyMs", "contents", "objects"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post-search-contents",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  },
+                  "parentIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "max": {
+                    "type": "number"
+                  },
+                  "filter": {
+                    "$ref": "#/components/schemas/Filter"
+                  }
+                },
+                "required": ["query"]
+              }
+            }
+          }
+        }
+      },
+      "parameters": []
+    },
+    "/v3/search/objects": {
+      "post": {
+        "summary": "Object Based",
+        "tags": ["Operations", "Search"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "latencyMs": {
+                      "type": "integer"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "object": {
+                            "$ref": "#/components/schemas/Object"
+                          },
+                          "snippet": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["object", "snippet"]
+                      }
+                    }
+                  },
+                  "required": ["id", "latencyMs", "results"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post-search-objects",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  },
+                  "parentIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "max": {
+                    "type": "integer"
+                  },
+                  "filter": {
+                    "$ref": "#/components/schemas/Filter"
+                  }
+                },
+                "required": ["query"]
+              }
+            }
+          }
+        }
+      },
+      "parameters": []
+    },
+    "/v3/search/related": {
+      "post": {
+        "summary": "Related Objects",
+        "tags": ["Operations", "Search"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "latencyMs": {
+                      "type": "integer"
+                    },
+                    "objects": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Object"
+                      }
+                    }
+                  },
+                  "required": ["id", "latencyMs", "objects"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post-v3-search-related",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "objectId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "parentIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "max": {
+                    "type": "integer"
+                  },
+                  "filter": {
+                    "$ref": "#/components/schemas/Filter"
+                  }
+                },
+                "required": ["objectId"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/completion/answer": {
+      "post": {
+        "summary": "Question Answering",
+        "tags": ["Operations", "Completion"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "latencyMs": {
+                      "type": "integer"
+                    },
+                    "answer": {
+                      "type": "string"
+                    },
+                    "sources": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Object"
+                      }
+                    }
+                  },
+                  "required": ["id", "latencyMs", "answer", "sources"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post-v3-completion-answer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "question": {
+                    "type": "string"
+                  },
+                  "parentIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "filter": {
+                    "$ref": "#/components/schemas/Filter"
+                  }
+                },
+                "required": ["question"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/completion/typeahead": {
+      "post": {
+        "summary": "Typeahead",
+        "tags": ["Operations", "Completion"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "latencyMs": {
+                      "type": "integer"
+                    },
+                    "completions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "sources": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Object"
+                      }
+                    }
+                  },
+                  "required": ["id", "latencyMs", "completions", "sources"]
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post-v3-completion-typeahead",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "maxLength": 280
+                  },
+                  "count": {
+                    "type": "integer",
+                    "maximum": 5
+                  },
+                  "parentIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "filter": {
+                    "$ref": "#/components/schemas/Filter"
+                  }
+                },
+                "required": ["text"]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Object": {
+        "type": "object",
+        "x-examples": {
+          "example-1": {
+            "createdAt": "2022-07-12T00:42:30.464519Z",
+            "id": "5d248fbf-030c-4d8b-978a-792bf835bad9",
+            "indexingStatus": "ready",
+            "label": "demos",
+            "metadata": {},
+            "parentId": "5ee1f476-b758-4a06-8950-d0ad0334b200",
+            "properties": {},
+            "type": "collection",
+            "updatedAt": "2022-07-12T00:42:30.773991Z"
+          }
+        },
+        "title": "Object",
+        "x-tags": ["Objects"],
+        "description": "",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string",
+            "readOnly": true
+          },
+          "parentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "type": {
+            "$ref": "#/components/schemas/ObjectTypes"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/Metadata"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/Properties"
+          },
+          "indexingStatus": {
+            "type": "string",
+            "enum": ["indexing", "ready", "error"],
+            "readOnly": true
+          },
+          "label": {
+            "$ref": "#/components/schemas/Label"
+          },
+          "lifespan": {
+            "$ref": "#/components/schemas/Lifespan"
+          }
+        },
+        "required": [
+          "id",
+          "createdAt",
+          "updatedAt",
+          "type",
+          "metadata",
+          "properties",
+          "indexingStatus"
+        ]
+      },
+      "Metadata": {
+        "title": "Object Metadata",
+        "x-stoplight": {
+          "id": "22od9qajx031z"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/CollectionMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/TextMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/HTMLMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/MarkdownMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/PDFMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/RSSMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/ImageMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/MBOXMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/AudioMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/EPUBMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/GithubRepositoryMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/NotionMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/EmailMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/NotionPageMetadata"
+          }
+        ],
+        "x-tags": ["Objects"],
+        "description": ""
+      },
+      "CollectionMetadata": {
+        "title": "Collection Metadata",
+        "x-stoplight": {
+          "id": "hmltyk98947v8"
+        },
+        "type": "object",
+        "x-tags": ["Metadata"]
+      },
+      "TextMetadata": {
+        "type": "object",
+        "title": "Text Metadata",
+        "x-stoplight": {
+          "id": "hmltyk98947v8"
+        },
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": ["text"],
+        "x-tags": ["Metadata"]
+      },
+      "HTMLMetadata": {
+        "type": "object",
+        "title": "HTML Metadata",
+        "x-stoplight": {
+          "id": "hmltyk98947v8"
+        },
+        "additionalProperties": false,
+        "x-tags": ["Metadata"],
+        "properties": {
+          "html": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": ["html"]
+      },
+      "MarkdownMetadata": {
+        "type": "object",
+        "title": "Markdown Metadata",
+        "x-stoplight": {
+          "id": "hmltyk98947v8"
+        },
+        "additionalProperties": false,
+        "x-tags": ["Metadata"],
+        "properties": {
+          "markdown": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": ["markdown"]
+      },
+      "PDFMetadata": {
+        "type": "object",
+        "title": "PDF Metadata",
+        "x-stoplight": {
+          "id": "hmltyk98947v8"
+        },
+        "additionalProperties": false,
+        "properties": {
+          "pdfUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": ["pdfUrl"],
+        "x-tags": ["Metadata"]
+      },
+      "ImageMetadata": {
+        "type": "object",
+        "title": "Image Metadata",
+        "x-stoplight": {
+          "id": "hmltyk98947v8"
+        },
+        "additionalProperties": false,
+        "properties": {
+          "imageUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": ["imageUrl"],
+        "x-tags": ["Metadata"],
+        "description": ""
+      },
+      "RSSMetadata": {
+        "type": "object",
+        "title": "RSS Metadata",
+        "x-stoplight": {
+          "id": "hmltyk98947v8"
+        },
+        "additionalProperties": false,
+        "properties": {
+          "rssUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": ["rssUrl"],
+        "x-tags": ["Metadata"],
+        "description": ""
+      },
+      "MBOXMetadata": {
+        "type": "object",
+        "title": "MBOX Metadata",
+        "x-stoplight": {
+          "id": "hmltyk98947v8"
+        },
+        "additionalProperties": false,
+        "properties": {
+          "mboxUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": ["mboxUrl"],
+        "x-tags": ["Metadata"],
+        "description": ""
+      },
+      "AudioMetadata": {
+        "type": "object",
+        "title": "Audio Metadata",
+        "x-stoplight": {
+          "id": "hmltyk98947v8"
+        },
+        "additionalProperties": false,
+        "properties": {
+          "audioUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": ["audioUrl"],
+        "x-tags": ["Metadata"],
+        "description": ""
+      },
+      "EPUBMetadata": {
+        "type": "object",
+        "title": "EPUB Metadata",
+        "x-stoplight": {
+          "id": "hmltyk98947v8"
+        },
+        "additionalProperties": false,
+        "x-tags": ["Metadata"],
+        "description": "",
+        "properties": {
+          "epubUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string",
+            "format": "ISO 639-1 Code",
+            "example": "en"
+          }
+        },
+        "required": ["epubUrl"]
+      },
+      "GithubRepositoryMetadata": {
+        "type": "object",
+        "title": "Github Repository Metadata",
+        "x-stoplight": {
+          "id": "l9nj02e4gpxy3"
+        },
+        "additionalProperties": false,
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "repoOwner": {
+            "type": "string"
+          },
+          "repoName": {
+            "type": "string"
+          },
+          "rootPath": {
+            "type": "string"
+          },
+          "rootName": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          }
+        },
+        "required": ["accessToken", "repoOwner", "repoName"],
+        "x-tags": ["Metadata"]
+      },
+      "NotionMetadata": {
+        "type": "object",
+        "title": "Notion Metadata",
+        "x-stoplight": {
+          "id": "hmltyk98947v8"
+        },
+        "additionalProperties": false,
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          }
+        },
+        "required": ["accessToken"],
+        "x-tags": ["Metadata"]
+      },
+      "EmailMetadata": {
+        "type": "object",
+        "title": "Email Metadata",
+        "x-stoplight": {
+          "id": "9y28bz023o0io"
+        },
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "sent": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "from": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "to": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["email", "sent", "from", "subject", "to"],
+        "x-tags": ["Metadata"]
+      },
+      "NotionPageMetadata": {
+        "type": "object",
+        "title": "Notion Page Metadata",
+        "x-stoplight": {
+          "id": "nbj9ej52pguzx"
+        },
+        "additionalProperties": false,
+        "x-tags": ["Metadata"],
+        "description": "",
+        "properties": {
+          "pageId": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": ["pageId", "url"]
+      },
+      "Properties": {
+        "type": "object",
+        "x-examples": {
+          "example-1": {
+            "foo": "bar",
+            "categories": ["foo", "bar"],
+            "number": 42,
+            "numbers": [1, 2, 3]
+          }
+        },
+        "title": "Properties",
+        "x-tags": ["Objects"]
+      },
+      "ObjectTypes": {
+        "type": "string",
+        "title": "Object Types",
+        "x-stoplight": {
+          "id": "54w51han2414m"
+        },
+        "enum": [
+          "collection",
+          "text",
+          "pdf",
+          "html",
+          "markdown",
+          "image",
+          "rss",
+          "mbox",
+          "email",
+          "audio",
+          "notion",
+          "github_repository",
+          "notion_page",
+          "epub"
+        ],
+        "x-tags": ["Objects"]
+      },
+      "Lifespan": {
+        "title": "Lifespan",
+        "x-stoplight": {
+          "id": "y335ttu0wbe6p"
+        },
+        "format": "int32",
+        "x-tags": ["Objects"],
+        "type": "integer"
+      },
+      "Label": {
+        "type": "string",
+        "title": "Label",
+        "x-stoplight": {
+          "id": "1hkulvq1vjr9z"
+        },
+        "maxLength": 255,
+        "x-tags": ["Objects"]
+      },
+      "Filter": {
+        "title": "Filter",
+        "x-stoplight": {
+          "id": "5su3tiu1wwwf2"
+        },
+        "x-tags": ["Operations"],
+        "type": "object"
+      },
+      "ContentTypes": {
+        "type": "string",
+        "title": "ContentTypes",
+        "x-stoplight": {
+          "id": "zc2sp6cf48pwe"
+        },
+        "x-tags": ["Operations"],
+        "enum": ["title", "content", "link", "image", "code", "list_item"],
+        "readOnly": true
+      }
+    },
+    "securitySchemes": {
+      "apiKey": {
+        "name": "Authorization",
+        "type": "apiKey",
+        "in": "header"
+      }
+    },
+    "responses": {
+      "Deleted": {
+        "description": "Example response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "x-examples": {
+                "example-1": {
+                  "deleted": true
+                }
+              },
+              "additionalProperties": false,
+              "properties": {
+                "deleted": {
+                  "type": "boolean"
+                }
+              },
+              "readOnly": true
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-internal": false,
+  "security": [
+    {
+      "API Key": []
+    }
+  ]
+}
