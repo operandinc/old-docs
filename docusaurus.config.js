@@ -43,6 +43,23 @@ const config = {
         },
       }),
     ],
+    [
+      "redocusaurus",
+      {
+        // Plugin Options for loading OpenAPI files
+        specs: [
+          {
+            spec: "https://prod.operand.ai/static/openapi.json",
+            route: "/api/",
+          },
+        ],
+        // Theme Options for modifying how redoc renders them
+        theme: {
+          // Change with your site colors
+          primaryColor: "#1890ff",
+        },
+      },
+    ],
   ],
 
   themeConfig:
@@ -51,6 +68,12 @@ const config = {
       navbar: {
         title: "Operand Docs",
         items: [
+          {
+            to: "api/",
+            label: "API Reference",
+            position: "left",
+          },
+
           {
             href: "https://github.com/operandinc/docs",
             label: "GitHub",
