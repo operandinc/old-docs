@@ -96,15 +96,15 @@ const related = await operand.searchRelated({
   max: 2,
 });
 for (let i = 0; i < related.objects.length; i++) {
-  console.log(`${i + 1}. ${JSON.stringify(related.objects[i])}`);
+  console.log(`${i + 1}. ${related.objects[i].label}`);
 }
 ```
 
 Running this code yields what we expect, John Collison is the most similar to Patrick, followed by Paul Graham.
 
 ```text
-1. {"createdAt":"2022-08-23T11:22:35.825369Z","id":"40b89a00-dde2-4735-9c43-875c14c3cf4a","indexingStatus":"ready","label":null,"lifespan":null,"metadata":{"url":null,"html":"<h1>John Collison</h1>\n<p>John Collison (born August 6, 1990) is an Irish billionaire entrepreneur and the co-founder and President of Stripe which he co-founded in 2010 with his brother Patrick. Collison was the youngest self made billionaire in 2016. As of 2022, according to Bloomberg Billionaires Index, his net worth was estimated at US$11.4 billion, ranking him the 187th richest person in the world and one of the wealthiest people from Ireland.[1]</p>\n","title":"John Collison"},"parentId":"14bb1eba-a389-493f-b6e1-82706b7612a3","properties":{},"type":"html","updatedAt":"2022-08-23T11:22:36.716137Z"}
-2. {"createdAt":"2022-08-23T11:22:36.422801Z","id":"13c4383f-eb1a-46eb-b441-2e3240f7b33f","indexingStatus":"ready","label":null,"lifespan":null,"metadata":{"url":null,"html":"<h1>Paul Graham</h1>\n<p>Paul Graham is an English-born American computer scientist, essayist, entrepreneur, venture capitalist, and author. He is best known for his work on the programming language Lisp, his former startup Viaweb (later renamed Yahoo! Store), cofounding the influential startup accelerator and seed capital firm Y Combinator, his blog, and Hacker News. He is the author of several computer programming books, including: On Lisp,[3] ANSI Common Lisp,[4] and Hackers &amp; Painters.[5] Technology journalist Steven Levy has described Graham as a 'hacker philosopher'.[6]</p>\n","title":"Paul Graham"},"parentId":"23656c95-b1f5-4371-af67-3ee24a199934","properties":{},"type":"html","updatedAt":"2022-08-23T11:22:37.344714Z"}
+1. John Collison
+2. Paul Graham
 ```
 
 Some ideas for using this in the context of a PRM:
