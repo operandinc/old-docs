@@ -50,13 +50,13 @@ const config = {
         specs: [
           {
             spec: "https://prod.operand.ai/static/openapi.json",
-            route: "/api/",
+            route: "/reference/",
           },
         ],
         // Theme Options for modifying how redoc renders them
         theme: {
           // Change with your site colors
-          primaryColor: "#1890ff",
+          primaryColor: "#2e8555",
         },
       },
     ],
@@ -69,7 +69,7 @@ const config = {
         title: "Operand Docs",
         items: [
           {
-            to: "api/",
+            to: "reference/",
             label: "API Reference",
             position: "left",
           },
