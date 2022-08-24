@@ -1,0 +1,66 @@
+---
+title: "Integrating with Quartz"
+description: "Adding AI-powered semantic search to your Quartz blog"
+---
+
+[Quartz](https://quartz.jzhao.xyz/) is a fully [open-source](https://github.com/jackyzha0/quartz) tool for curating your very own "digital garden" online, containing notes, blog posts, and other content. With Quartz, anyone can be their own publisher, fully managed through a convenient Git-based workflow.
+
+When [setting up your Quartz blog](https://quartz.jzhao.xyz/notes/setup/), you have two options for search:
+
+- Full-text search, powered by [FlexSearch](https://github.com/nextapps-de/flexsearch). This option is run client-side, and is very fast. However, due to the nature of full-text search, your users will need to use specific keywords to find matching content.
+- Semantic search, powered by [Operand](https://operand.ai). In this case, Operand indexes the content from your Git repository directly, and your users can search for content using natural language. The benefit of this approach is that your users no longer need to use specific keywords to find content, rather, they'll get great quality results even if they don't know the specific wording of the content itself.
+
+:::info
+
+Operand is free-to-use for up to 1000 indexed documents per month. This means that the majority of Quartz users who run a blog will be able to use semantic search entirely for free. For more information on Operand's pricing, [click here](https://operand.ai/#pricing).
+
+:::
+
+## Setup Quartz
+
+This step is optional if you've already setup your Quartz-based blog. For those who havent, you can follow the [setup guide](https://quartz.jzhao.xyz/notes/setup/) on the Quartz website. If you have any questions, Quartz has a great [Troubleshooting and FAQ](https://quartz.jzhao.xyz/notes/troubleshooting/) guide that might help you out.
+
+## Adding Natural Language Search
+
+In order to create integrate natural language search into your blog, you'll first need an [Operand](https://operand.ai) account. You can sign up / log in [here](https://operand.ai/auth). Note: Signing up is entirely risk-free, you will not be asked to enter any personal information or payment details.
+
+### Linking GitHub
+
+In order to index the content of your blog, and in order for Operand to keep the content up-to-date as you make changes, you'll need to authenticate with your GitHub account. You can do this by navigating to Settings -> Billing in the [Operand dashboard](https://operand.ai/dashboard?location=settings:integrations). From there, you'll need to give Operand access to the repository that you're using for your Quartz blog.
+
+### Indexing Content
+
+In the Operand [object browser](https://operand.ai/dashboard?location=objects), you can now press CMD+K -> Create GitHub Repo to index your repository. You'll need to set the following fields in the popup menu:
+
+- Repository Owner: The owner of the repository, i.e. the GitHub user or organization.
+- Repository Name: The name of the repository.
+- Repository Ref: The branch or tag that you want to index. This must be set to `master`.
+
+For example, indexing `jackyzha0/quartz` would look like this:
+
+![Indexing a GitHub Repository](/img/posts/quartz/create-repo.png)
+
+Clicking "Create" will create the repository within Operand, and start the indexing process. Once complete, you'll see the following on the dashboard:
+
+![Indexing Status](/img/posts/quartz/indexed.png)
+
+At this point, Operand will automatically check for updates every 2 hours and keep your search results up-to-date. Note: The label above ("my cool label") is entirely optional and mostly for organizational purposes.
+
+### Configuring Quartz
+
+Now that we've indexed everything, the final step is to setup Quartz. To do so, you'll need to create an Operand API key suitable for client-side use from your website, i.e. an Operand public key. To do this, copy the ID of the created GitHub Repository object (in the actions menu) and paste it into CMD+K -> Create Public API Key, and choose the key type "search".
+
+![Creating an Operand API Key](/img/posts/quartz/api-key.png)
+
+Now that you have your API key (should've been copied to your clipboard), you can now go into your Quartz `data/config.yaml` file and set the following:
+
+```yaml
+enableSemanticSearch: true
+operandApiKey: "<your-api-key>"
+```
+
+Once you've committed the new config, you should be good to go! Operand will refetch the contents of your repository every 2 hours automatically.
+
+### Troubleshooting
+
+If there's any issues with the setup process, feel free to [reach out](/start#getting-help) and we'd be happy to help out!
