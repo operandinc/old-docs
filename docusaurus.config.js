@@ -122,14 +122,6 @@ const config = {
         darkTheme: darkCodeTheme,
       },
     }),
-  plugins: [
-    [
-      "docusaurus-plugin-segment",
-      {
-        apiKey: process.env.SEGMENT_API_KEY,
-      },
-    ],
-  ],
 };
 
 module.exports = config;
