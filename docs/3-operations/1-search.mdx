@@ -125,6 +125,11 @@ Some notes:
 
 Object-based search is perhaps a more traditional search experience, since it involves searching over and finding the most relevant objects (documents) for a given search query. Often, end-users are more accustomed to seeing document-based search results (complete with titles and snippets) than content-based search results, which from a UI/UX perspective, can be tricky to display properly.
 
+**Important**: If you're using object-based search in a production environment, please consider sending anonymous [Feedback](#feedback) when a user clicks on a search result. This accomplishes two things:
+
+- It improves the quality of your search results. Operand learns on its own from your user's clicks, and will use the information to yield better search results over time.
+- It helps us understand how people use Operand, and can help us improve the user experience as a whole.
+
 Parameters:
 
 - `query` is the search query. It must not be empty.
@@ -311,3 +316,40 @@ For example, when searching over [Paul Graham's Essays](https://www.paulgraham.c
   ]
 }
 ```
+
+## Feedback
+
+We heavily encourage all users using [Object-Based Search](#object-based) in production to send feedback as part of their application. As mentioned above, feedback is used to auto-magically improve the search experience. It helps us because it gives us analytics on how our systems are performing, and it helps you because your search results automatically improve over time based on the behaviour of your users.
+
+All object-based search requests will return a unique `id` to identify the request. Feedback can then be sent with this ID, and the object that the user clicked on.
+
+Some notes:
+
+- This is entirely anonymous feedback, and no user information will / should be shared with us.
+- Please make a point to send feedback as soon as possible after the user clicks on a document. We care about timing, as it gives us a better understanding of how quickly a user clicked on a result.
+- It is OK, and encouraged, to send feedback multiple times for the same search request (for instance, if the user clicked on a document, went back and clicked on another doucment).
+
+<Tabs groupId="programming-language">
+<TabItem value="typescript" label="TypeScript">
+
+```tsx
+await operand.feedback({
+  searchId: "0fd70b6f-0dd6-4168-87a1-26f4e10eecce", // the search id to give feedback for
+  objectId: "a0750943-56fc-4cb2-9b2e-026bd4f0a933", // the object id which was clicked by the user
+});
+```
+
+</TabItem>
+<TabItem value="go" label="Go">
+
+```go
+if err := client.Feedback(context.Background(), operand.FeedbackArgs{
+    SearchID: "0fd70b6f-0dd6-4168-87a1-26f4e10eecce", // the search id to give feedback for
+    ObjectID: "a0750943-56fc-4cb2-9b2e-026bd4f0a933", // the object id which was clicked by the user
+}); err != nil {
+    // handle errors
+})
+```
+
+</TabItem>
+</Tabs>
