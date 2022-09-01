@@ -1,0 +1,160 @@
+---
+title: "Semantic Search"
+description: "Adding AI-powered semantic search to your application, with only a few code changes."
+---
+
+Semantic search is a relatively new idea, and has only recently been made viable due to the availability and innovation of the NLP space, and in particular, the advent of [transformer](https://arxiv.org/abs/1706.03762)-based models. Using [Operand](https://operand.ai), you can add world-class semantic search to your application within minutes, no NLP background required.
+
+## Background
+
+Semantic search is a new way of searching and navigating large amounts of content. It works by transforming text into a high-dimensional vector representation (english: lots of numbers), and finding vectors (numbers) which are similar to each other. This is in contrast to traditional search engines (i.e. full-text search), which work by ranking documents based on matching keywords.
+
+Semantic search is fundamentally different from full-text search engines, which keep track of the frequency of different keywords within a document (and their relative position to each other) + other ranking factors (i.e. [PageRank](https://en.wikipedia.org/wiki/PageRank)).
+
+## Considerations
+
+As mentioned in our [search](/operations/search) documentation, Operand is, at its core, a semantic search engine. It is optimized for particular, well-defined use cases, and likely shouldn't be used for others. Specifically, **Operand is not a full-text search engine**.
+
+Use cases where semantic search makes a lot of sense:
+
+- When the user is searching for content or ideas, not specific keywords. For example, a blog, wiki, news site, or book often contains lots of ideas, and the user shouldn't need to know specific keywords in order to find the content they're looking for.
+- When relationships between documents are important. For example, if a user is searching for a movie, they might also want to know other similar movies which are related to the one they're interested in.
+- When the user doesn't necessarily know what they're looking for. Semantic search tends to yield better results on more abstract queries.
+
+Use cases where semantic search may not be appropriate:
+
+- When latency is top-priority. Semantic search is inherently very computationally expensive, and thus is usually (and probably should be) done server-side. This means that each search request requires a network round-trip.
+- When users are likely searching for specific keywords. For example, a doctors office may want to search for a specific patient identifer or email address. Essentially, if you're looking for exact content matches, you probably don't want to use semantic search.
+
+There is however, certain ways to get around most (if not all) of these limitations if the need arises. We've done it before on a per-case basis, and we're happy to chat about different options. If you have custom requirements for your search, please [reach out](mailto:support@operand.ai)!
+
+## Integrating Semantic Search
+
+If you've gotten here, it means you've probably decided semantic search is right for your use case, and want to start integrating it into your application. We've written a number of [guides](/guides) for more specific use cases, but the following is a general overview of how to get started for most applications.
+
+We expect integration to take <30 minutes of developer time. If it takes longer, please [let us know why](/start#getting-help); we'll help you out, give you free credits for your trouble, and improve the system for the next user!
+
+### (Optional) Multi-Tenancy
+
+If you're using Operand in a "multi-tenant" environment, i.e. when multiple users use your software and have their own content / data, you'll need to build your Operand index in such a way to accommodate this. Specifically, we recommend creating a [collection](/objects#collection) for each user. Here's some pseudo-code using our TypeScript API for this:
+
+```typescript
+import { OperandV3 } from "@operandinc/sdk";
+
+const operand = new OperandV3("<your api key>", "https://prod.operand.ai");
+
+async function createUser(emailAddress: string) {
+  const collection = await operand.createObject({
+    type: "collection",
+    metadata: {},
+  });
+  await database.storeUser({
+    emailAddress,
+    operandId: collection.id,
+    // ...
+  });
+}
+```
+
+Essentially, when we create a new user, we also create a corresponding collection for them, and save the `id` of the collection in our database. This means we can use that `id` in the future to index content, or perform search queries.
+
+### Indexing Content
+
+Whenever the user creates some content in your app, be it a new note, a blog post, perhaps a new message in a chat app, you'll want to index that content in Operand so it can be searched. We support a large number of different content types (for a full list, [click here](/objects#types)), but for this example, we'll pretend the user is creating markdown content (i.e. for a blog).
+
+```typescript
+// Whenever the user creates a new blog post, we'll index it in Operand.
+async function createBlogPost(user: User, title: string, content: string) {
+  const obj = await operand.createObject({
+    type: "markdown",
+    metadata: {
+      markdown: content,
+      title,
+    },
+    // Optional, include if this is a multi-tenant environment.
+    parentId: user.operandId,
+  });
+  await database.storeBlogPost({
+    userId: user.id,
+    operandId: obj.id, // Store the ID of the operand object with the blog post itself.
+    title,
+    content,
+    // ...
+  });
+}
+
+// If they edit a blog post, we want to propagate those edits.
+async function updateBlogPost(post: BlogPost, title: string, content: string) {
+  if (post.operandId) {
+    await operand.updateObject(post.operandId, {
+      type: "markdown",
+      metadata: {
+        markdown: content,
+        title,
+      },
+    });
+  }
+  await database.updateBlogPost({
+    id: post.id,
+    title,
+    content,
+    // ...
+  });
+}
+
+// Finally, if we delete a blog post, we'll delete it from Operand.
+async function deleteBlogPost(post: BlogPost) {
+  if (post.operandId) {
+    await operand.deleteObject({
+      id: post.operandId,
+    });
+  }
+  await database.deleteBlogPost(post.id);
+}
+```
+
+Note: If you want to do more advanced searches in the future, i.e. for example tagging documents or adding additional properties, you'll need to specify the `properties` field when you create/update objects. [Click here](/objects#properties) to learn more about this. Note: Properties are extremely powerful, and can be used to do extremely granular searches. For example, a user of ours has literally built up an entire role-based permission system on top of object properties.
+
+### Searching Content
+
+There's a number of different ways that you can search for content in Operand. The most basic of which is our [object-based search endpoint](/operations/search#object-based), which returns the top objects (along with a small snippet of text) that match a query.
+
+```typescript
+async function search(
+  user: User,
+  query: string
+): Promise<
+  {
+    post: BlogPost;
+    snippet: string;
+  }[]
+> {
+  // We don't support empty queries.
+  if (query.length === 0) {
+    return [];
+  }
+
+  // Get the search results.
+  const results = await operand.searchObjects({
+    query,
+    max: 5,
+    // Optional, make sure the search only returns blog posts from this user.
+    parentId: user.operandId,
+  });
+
+  // Get the blog posts from the database and return them along with the snippets.
+  return await database
+    .getBlogPostsByOperandIds(results.map((r) => r.id))
+    .entries()
+    .map(([index, post]) => ({
+      post,
+      snippet: results[index].snippet,
+    }));
+
+  // Alternative: If you don't want to do a query on the database to show the search results, you can index additional application-specific data when you're indexing the blog posts, and use that data (returned by searchObjects response) to render the search UI.
+}
+```
+
+Taking this a step further, we can do other operations on the same index. For a full list, see [Operations](/operations). These include content-based search (finding specific content or ideas), related-object search (finding blog posts which are similar to each other), in addition to generative operations (intelligent question answering, typeahead).
+
+As always, if you need help, please [reach out](/start#getting-help)!
